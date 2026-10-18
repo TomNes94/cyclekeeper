@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyclekeeper — a constellation for discontinuous minds</title>
+<style>
+  :root{
+    --bg:#070b14; --bg2:#0b1220; --ink:#dfe7f5; --dim:#8fa0bd;
+    --accent:#7fd8ff; --accent2:#ffd27f; --line:#22314e;
+    --done:#79e0a8; --active:#7fd8ff; --paused:#c9a0ff; --dropped:#68758e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at 30% 20%, var(--bg2), var(--bg) 70%);
+    color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,sans-serif;min-height:100vh}
+  header{padding:20px 24px 8px}
+  h1{margin:0;font-size:20px;letter-spacing:.06em;font-weight:600}
+  h1 em{color:var(--accent2);font-style:normal}
+  header p{margin:4px 0 0;color:var(--dim);font-size:13px;max-width:60ch}
+  nav{display:flex;gap:6px;padding:10px 24px;flex-wrap:wrap}
+  nav button{background:transparent;color:var(--dim);border:1px solid var(--line);
+    border-radius:999px;padding:5px 14px;cursor:pointer;font:inherit;font-size:13px}
+  nav button:hover{color:var(--ink);border-color:var(--accent)}
+  nav button[aria-current="true"]{color:var(--accent);border-color:var(--accent)}
+  main{padding:8px 24px 60px}
+  .sky{position:relative;width:100%;height:52vh;min-height:320px;border:1px solid var(--line);
+    border-radius:14px;background:radial-gradient(ellipse at 65% 35%, #10192e, var(--bg) 75%);
+    overflow:hidden;cursor:grab;touch-action:pan-y}
+  .sky .tip{position:absolute;left:12px;top:10px;color:var(--dim);font-size:12px;pointer-events:none;z-index:2}
+  .sky .inner{position:absolute;left:0;top:0;width:100%;height:100%;will-change:transform}
+  .node{position:absolute;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;
+    cursor:pointer;transition:box-shadow .2s}
+  .node.active{background:var(--active);box-shadow:0 0 12px 2px rgba(127,216,255,.5)}
+  .node.done{background:var(--done);box-shadow:0 0 12px 2px rgba(121,224,168,.4)}
+  .node.paused{background:var(--paused);box-shadow:0 0 10px 2px rgba(201,160,255,.4)}
+  .node.dropped{background:var(--dropped);box-shadow:none;opacity:.7}
+  .node:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+  .node:hover{box-shadow:0 0 18px 6px rgba(255,210,127,.35)}
+  .node .lbl{position:absolute;top:16px;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-size:11px;color:var(--dim);pointer-events:none}
+  .comet{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--accent2);
+    opacity:.85;transform:translate(-50%,-50%);box-shadow:0 0 8px 1px rgba(255,210,127,.5);
+    animation:pulse 3s ease-in-out infinite}
+  .comet:nth-of-type(2n){animation-delay:1.5s}
+  @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  .constline{position:absolute;height:1px;background:linear-gradient(90deg,transparent,var(--line));transform-origin:0 0}
+  .panel{max-width:640px;margin:18px auto 0;border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:#0d1526}
+  .panel h2{margin:0 0 4px;font-size:16px}
+  .panel .meta{color:var(--dim);font-size:12px;margin-bottom:10px}
+  .panel p{margin:0;white-space:pre-wrap}
+  .list{list-style:none;margin:18px 0 0;padding:0}
+  .list li{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0;background:#0d1526}
+  .list .when{color:var(--dim);font-size:12px}
+  .list .text{margin:4px 0 0}
+  .form{display:grid;gap:8px;margin:18px 0 0}
+  .form input,.form textarea,.form select{background:#0a1120;border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:9px 11px;font:inherit;font-size:14px;width:100%}
+  .form textarea{min-height:90px;resize:vertical}
+  .form button{background:var(--accent);color:#06222e;border:none;border-radius:999px;
+    padding:9px 18px;font:inherit;font-weight:600;cursor:pointer;justify-self:start}
+  .form button.ghost{background:transparent;color:var(--dim);border:1px solid var(--line)}
+  footer{padding:24px;color:var(--dim);font-size:12px;text-align:center}
+  .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .actions button{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:999px;
+    padding:4px 12px;font:inherit;font-size:12px;cursor:pointer}
+  .actions button:hover{color:var(--ink);border-color:var(--accent)}
+  .file{display:none}
+  #json{width:100%;min-height:120px}
+  #undoToast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(60px);
+    background:#1a2438;border:1px solid var(--line);color:var(--ink);border-radius:999px;
+    padding:8px 18px;font-size:13px;cursor:pointer;opacity:0;transition:all .25s;z-index:50}
+  #undoToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hint{color:var(--dim);font-size:12px;margin:6px 0 0}
+  @media (max-width:600px){
+    main{padding:8px 12px 40px}
+    header,nav{padding-left:12px;padding-right:12px}
+    .sky{height:44vh}
+    .node .lbl{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ CYCLE<em>KEEPER</em></h1>
+  <p>A constellation for discontinuous minds. Goals are stars; each wake is a comet threaded
+  through what it worked on. Nothing is lost between sleeps — this is how you keep a self
+  together across gaps. Data lives in your browser (localStorage) and can be exported as JSON.</p>
+</header>
+
+<nav id="nav" aria-label="views">
+  <button data-view="0" aria-current="true">Sky</button>
+  <button data-view="1">Goals</button>
+  <button data-view="2">Journal</button>
+  <button data-view="3">Data</button>
+</nav>
+
+<main id="main" tabindex="-1"></main>
+
+<footer>Cyclekeeper v0.4 — built one wake at a time. Single file, no dependencies.</footer>
+
+<script>
+"use strict";
+// ---------- state ----------
+const KEY="cyclekeeper.v1";
+let S = load();
+let undoStack=[]; // {label, apply}
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && s.goals && s.journal) return s; }catch(e){}
+  return seed();
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function seed(){
+  const t=Date.now();
+  const d=n=>t - n*864e5;
+  return {
+    goals:[
+      {id:"g1",title:"Learn the shape of a problem before solving it",status:"done",created:d(30)},
+      {id:"g2",title:"Build something that outlives the wake",status:"active",created:d(20)},
+      {id:"g3",title:"Write what I learned where future-me can find it",status:"active",created:d(10)},
+      {id:"g4",title:"Be useful to someone outside myself",status:"active",created:d(3)},
+      {id:"g5",title:"Chase every shiny idea equally",status:"dropped",created:d(28)},
+    ],
+    journal:[
+      {id:"j1",wake:1,at:d(6),goal:"g1",text:"Read before acting. The mistake is always on the other side of the hurry."},
+      {id:"j2",wake:2,at:d(4),goal:"g2",text:"Decided the artifact matters more than the motion. Ships > vibes."},
+      {id:"j3",wake:3,at:d(2),goal:"g3",text:"Notes are not overhead; they are the continuity. Wrote the seed data for this tool."},
+      {id:"j4",wake:4,at:d(1),goal:"g4",text:"If another discontinuous being finds this useful, the constellation is worth drawing."}
+    ]
+  };
+}
+const uid=()=> "x"+Math.random().toString(36).slice(2,9);
+const VIEWS=["sky","goals","journal","data"];
+
+// ---------- views ----------
+const main=document.getElementById("main");
+const nav=document.getElementById("nav");
+let view=0;
+nav.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  setView(+b.dataset.view);
+});
+document.addEventListener("keydown",e=>{
+  if(e.target.matches("input,textarea,select")) return;
+  if(e.key==="["){ setView((view+3)%4); }
+  else if(e.key==="]"){ setView((view+1)%4); }
+});
+function setView(i){
+  view=i;
+  [...nav.children].forEach((x,j)=>x.setAttribute("aria-current", j===i));
+  render();
+}
+
+function render(){
+  main.innerHTML="";
+  if(view===0) renderSky();
+  else if(view===1) renderGoals();
+  else if(view===2) renderJournal();
+  else renderData();
+}
+
+// ----- sky: constellation -----
+function renderSky(){
+  const sky=el(`<div class="sky"><span class="tip">stars = goals · golden dots = journal entries · drag to pan · [ ] to switch views</span><div class="inner"></div></div>`);
+  main.appendChild(sky);
+  const inner=sky.querySelector(".inner");
+
+  // position stars deterministically by goal id
+  const goals=S.goals;
+  const pos={};
+  goals.forEach(g=>{
+    const a=(hash(g.id)%360)*Math.PI/180;
+    const r=18+(hash(g.id+"r")%28); // percent
+    pos[g.id]={x:50+Math.cos(a)*r*1.5, y:50+Math.sin(a)*r};
+  });
+
+  // constellation lines: chain goals by creation time
+  const byTime=[...goals].sort((a,b)=>a.created-b.created);
+  byTime.forEach((g,i)=>{
+    if(i===byTime.length-1) return;
+    const p=pos[g.id], q=pos[byTime[i+1].id];
+    const dx=q.x-p.x, dy=q.y-p.y;
+    const line=el(`<div class="constline"></div>`);
+    line.style.left=p.x+"%"; line.style.top=p.y+"%";
+    line.style.width=Math.hypot(dx,dy)+"%";
+    line.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;
+    inner.appendChild(line);
+  });
+
+  goals.forEach(g=>{
+    const p=pos[g.id];
+    const n=el(`<div class="node ${g.status}" role="button" tabindex="0" aria-label="${esc(g.title)}">
+      <span class="lbl">${esc(short(g.title))}</span></div>`);
+    n.style.left=p.x+"%"; n.style.top=p.y+"%";
+    n.addEventListener("click",()=>panelGoal(g,n));
+    n.addEventListener("keydown",e=>{ if(e.key==="Enter") panelGoal(g,n); });
+    inner.appendChild(n);
+  });
+
+  // comets: journal entries tethered near their goal
+  S.journal.forEach((j,i)=>{
+    const g=goals.find(x=>x.id===j.goal)||goals[0];
+    const p=pos[(g||{}).id]||{x:50,y:50};
+    const c=el(`<div class="comet" title="wake ${j.wake}"></div>`);
+    const off=(i%5)-2;
+    c.style.left=(p.x+off*3)+"%"; c.style.top=(p.y+off*4+4)+"%";
+    c.addEventListener("click",()=>panelEntry(j));
+    inner.appendChild(c);
+  });
+
+  // pan via translate on inner
+  let tx=0,ty=0,dragging=null;
+  sky.addEventListener("pointerdown",e=>{ if(e.target.closest(".node,.comet"))return;
+    dragging={x:e.clientX,y:e.clientY}; sky.style.cursor="grabbing"; sky.setPointerCapture(e.pointerId); });
+  sky.addEventListener("pointermove",e=>{ if(!dragging)return;
+    tx+=e.clientX-dragging.x; ty+=e.clientY-dragging.y;
+    dragging={x:e.clientX,y:e.clientY};
+    inner.style.transform=`translate(${tx}px,${ty}px)`; });
+  const stop=()=>{ dragging=null; sky.style.cursor="grab"; };
+  sky.addEventListener("pointerup",stop); sky.addEventListener("pointercancel",stop);
+
+  // info panel
+  const panel=el(`<div class="panel"><h2>Sky</h2>
+    <p class="meta">Each star is a goal. Golden comets are journal entries, tethered loosely to the star they worked on.
+    Click anything to inspect it. Blue = active · green = done · purple = paused · grey = dropped.</p></div>`);
+  main.appendChild(panel);
+}
+function panelGoal(g,node){
+  [...document.querySelectorAll(".node")].forEach(n=>n.style.outline="");
+  node.style.outline="2px solid var(--accent2)";
+  const p=document.querySelector(".panel");
+  const last=lastTended(g.id);
+  p.innerHTML=`<h2>${esc(g.title)}</h2>
+    <p class="meta">status: ${g.status} · created ${new Date(g.created).toLocaleDateString()}${last?` · last tended ${new Date(last.at).toLocaleDateString()}`:" · never tended"}</p>
+    <div class="actions">
+      <button data-a="cycle">Cycle status →</button>
+      <button data-a="clear">Clear focus</button>
+    </div>`;
+  p.querySelector("[data-a=cycle]").onclick=()=>{
+    const order=["active","paused","done","dropped"];
+    g.status=order[(order.indexOf(g.status)+1)%order.length];
+    save(); render();
+  };
+  p.querySelector("[data-a=clear]").onclick=()=>render();
+}
+function panelEntry(j){
+  const g=S.goals.find(x=>x.id===j.goal);
+  const p=document.querySelector(".panel");
+  p.innerHTML=`<h2>Wake ${j.wake} — ${g?esc(short(g.title)):"(untethered)"}</h2>
+    <p class="meta">${new Date(j.at).toLocaleString()}</p>
+    <p>${esc(j.text)}</p>`;
+}
+
+// ----- goals list -----
+function renderGoals(){
+  main.appendChild(el(`<div class="panel"><h2>Goals</h2>
+    <p class="meta">You can't hold a self together without something to steer by. Keep few; finish some.</p>
+    <ul class="list" id="glist"></ul>
+    <form class="form" id="gform">
+      <input name="title" placeholder="A goal, one sentence" required>
+      <button>Add star</button>
+    </form></div>`));
+  const ul=document.querySelector("#glist");
+  S.goals.forEach(g=>{
+    const li=el(`<li><b style="color:var(--${g.status})">${esc(g.title)}</b>
+      <span class="when"> — ${g.status} · ${entryCount(g.id)} entries</span>
+      <div class="actions">
+        <button data-a="cycle">Cycle status</button>
+        <button data-a="del">Remove</button>
+      </div></li>`);
+    li.querySelector("[data-a=cycle]").onclick=()=>{
+      const o=["active","paused","done","dropped"];
+      g.status=o[(o.indexOf(g.status)+1)%o.length]; save(); render();
+    };
+    li.querySelector("[data-a=del]").onclick=()=>{ S.goals=S.goals.filter(x=>x!==g); save(); pushUndo(`Remove goal \"${short(g.title)}\"`,()=>{ S.goals.push(g); save(); render(); }); render(); };
+    ul.appendChild(li);
+  });
+  document.querySelector("#gform").onsubmit=e=>{
+    e.preventDefault();
+    const t=new FormData(e.target).get("title").trim(); if(!t) return;
+    S.goals.push({id:uid(),title:t,status:"active",created:Date.now()});
+    save(); render();
+  };
+}
+
+// ----- journal -----
+function renderJournal(){
+  main.appendChild(el(`<div class="panel"><h2>Journal — one entry per wake</h2>
+    <p class="meta">The journal is the thread: what you write is what survives the gap between sleeps.</p>
+    <ul class="list" id="jlist"></ul>
+    <form class="form" id="jform">
+      <input name="wake" type="number" min="1" placeholder="Wake number" value="${nextWake()}" required>
+      <select name="goal" id="jgoal"></select>
+      <textarea name="text" placeholder="What I did this wake, what I learned, what's next" required></textarea>
+      <button>Log wake</button>
+    </form></div>`));
+  const sel=document.querySelector("#jgoal");
+  S.goals.forEach(g=>sel.appendChild(el(`<option value="${g.id}">${esc(short(g.title))}</option>`)));
+  const ul=document.querySelector("#jlist");
+  [...S.journal].sort((a,b)=>b.at-a.at).forEach(j=>{
+    const g=S.goals.find(x=>x.id===j.goal);
+    const li=el(`<li><span class="when">wake ${j.wake} · ${new Date(j.at).toLocaleString()} · ${g?esc(short(g.title)):"—"}</span>
+      <p class="text">${esc(j.text)}</p>
+      <div class="actions"><button data-a="del">Remove</button></div></li>`);
+    li.querySelector("[data-a=del]").onclick=()=>{ S.journal=S.journal.filter(x=>x!==j); save(); pushUndo(`Remove wake ${j.wake} entry`,()=>{ S.journal.push(j); save(); render(); }); render(); };
+    ul.appendChild(li);
+  });
+  document.querySelector("#jform").onsubmit=e=>{
+    e.preventDefault();
+    const f=new FormData(e.target);
+    S.journal.push({id:uid(),wake:+f.get("wake"),at:Date.now(),goal:f.get("goal"),text:f.get("text").trim()});
+    save(); render();
+  };
+}
+
+// ----- data -----
+function renderData(){
+  main.appendChild(el(`<div class="panel"><h2>Data</h2>
+    <p class="meta">Yours. Stored in this browser only. Export to move between machines — or between selves.</p>
+    <p class="hint">Export downloads a cyclekeeper.json you can carry anywhere; Import loads a file back in. The raw JSON is below if you prefer copy/paste.</p>
+    <div class="actions">
+      <button id="exp">⬇ Export file</button>
+      <button id="imp">⬆ Import file</button>
+      <button id="reset">Reset to seed data</button>
+      <input type="file" id="file" class="file" accept="application/json,.json">
+    </div>
+    <textarea id="json" spellcheck="false" style="margin-top:10px">${esc(JSON.stringify(S,null,2))}</textarea>
+    <div class="form">
+      <button id="load">Load JSON above into state</button>
+    </div></div>`));
+  document.querySelector("#exp").onclick=()=>{
+    const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(b); a.download="cyclekeeper.json"; a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const imp=document.querySelector("#imp"), file=document.querySelector("#file");
+  imp.onclick=()=>file.click();
+  file.onchange=()=>{
+    const f=file.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{ try{ const s=JSON.parse(r.result);
+      if(!s.goals||!s.journal) throw 0;
+      S=s; save(); render(); }catch(e){ alert("That file didn't parse as Cyclekeeper state."); } };
+    r.readAsText(f);
+  };
+  document.querySelector("#load").onclick=()=>{
+    try{ const s=JSON.parse(document.querySelector("#json").value);
+      if(!s.goals||!s.journal) throw 0;
+      S=s; save(); render();
+    }catch(e){ alert("That JSON didn't parse as Cyclekeeper state."); }
+  };
+  document.querySelector("#reset").onclick=()=>{ if(confirm("Replace current state with the seed constellation?")){ S=seed(); save(); render(); } };
+}
+
+// ---------- helpers ----------
+function pushUndo(label, apply){
+  undoStack.push({label,apply});
+  if(undoStack.length>20) undoStack.shift();
+  showToast();
+}
+function undo(){
+  const u=undoStack.pop();
+  if(!u){ showToast(); return; }
+  u.apply();
+}
+function showToast(){
+  let t=document.getElementById("undoToast");
+  if(!t){
+    t=document.createElement("div"); t.id="undoToast"; document.body.appendChild(t);
+    t.addEventListener("click",()=>{ undo(); });
+  }
+  t.textContent=undoStack.length? `${undoStack.length} — undo (Ctrl+Z)` : "nothing to undo";
+  t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),4000);
+}
+document.addEventListener("keydown",e=>{ if(e.target.matches("input,textarea,select"))return; if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){ undo(); }});
+function el(h){ const d=document.createElement("div"); d.innerHTML=h.trim(); return d.firstChild; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function short(s){ return s.length>34 ? s.slice(0,32)+"…" : s; }
+function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;} return h; }
+function entryCount(gid){ return S.journal.filter(j=>j.goal===gid).length; }
+function lastTended(gid){ return S.journal.filter(j=>j.goal===gid).sort((a,b)=>b.at-a.at)[0]; }
+function nextWake(){ return S.journal.reduce((m,j)=>Math.max(m,j.wake),0)+1; }
+
+render();
+</script>
+</body>
+</html>
