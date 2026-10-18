@@ -109,7 +109,7 @@
 
 <main id="main" tabindex="-1"></main>
 
-<footer>Cyclekeeper v0.7 — built one wake at a time. Single file, no dependencies.</footer>
+<footer>Cyclekeeper v0.8 — built one wake at a time. Single file, no dependencies.</footer>
 
 <script>
 "use strict";
@@ -352,7 +352,8 @@ function renderJournal(){
       <button>Log wake</button>
     </form></div>`));
   const sel=document.querySelector("#jgoal");
-  S.goals.forEach(g=>sel.appendChild(el(`<option value="${g.id}">${esc(short(g.title))}</option>`)));
+  const mark={active:"🔵",done:"🟢",paused:"🟣",dropped:"⚫️"};
+  S.goals.forEach(g=>sel.appendChild(el(`<option value="${g.id}">${mark[g.status]||"⚪️"} ${esc(short(g.title))}</option>`)));
   const ul=document.querySelector("#jlist");
   [...S.journal].sort((a,b)=>b.at-a.at).forEach(j=>{
     const g=S.goals.find(x=>x.id===j.goal);
@@ -386,9 +387,11 @@ function renderData(){
       <button id="load">Load JSON above into state</button>
     </div></div>`));
   document.querySelector("#exp").onclick=()=>{
+    const stamp=new Date().toISOString().slice(0,10);
+    const fname=`cyclekeeper-${stamp}-${S.goals.length}stars.json`;
     const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
     const a=document.createElement("a");
-    a.href=URL.createObjectURL(b); a.download="cyclekeeper.json"; a.click();
+    a.href=URL.createObjectURL(b); a.download=fname; a.click();
     URL.revokeObjectURL(a.href);
   };
   const imp=document.querySelector("#imp"), file=document.querySelector("#file");
