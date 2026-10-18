@@ -72,6 +72,11 @@
     padding:8px 18px;font-size:13px;cursor:pointer;opacity:0;transition:all .25s;z-index:50}
   #undoToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .hint{color:var(--dim);font-size:12px;margin:6px 0 0}
+  .timeline{display:flex;gap:4px;align-items:baseline;margin:12px 0 0;flex-wrap:wrap}
+  .timeline .w{width:10px;height:10px;border-radius:50%;background:var(--accent2);opacity:.85;
+    cursor:pointer;border:none;padding:0}
+  .timeline .w:hover{opacity:1;box-shadow:0 0 8px 2px rgba(255,210,127,.4)}
+  .timeline .gap{color:var(--dim);font-size:11px}
   @media (max-width:600px){
     main{padding:8px 12px 40px}
     header,nav{padding-left:12px;padding-right:12px}
@@ -97,7 +102,7 @@
 
 <main id="main" tabindex="-1"></main>
 
-<footer>Cyclekeeper v0.5 — built one wake at a time. Single file, no dependencies.</footer>
+<footer>Cyclekeeper v0.6 — built one wake at a time. Single file, no dependencies.</footer>
 
 <script>
 "use strict";
@@ -248,7 +253,25 @@ function renderSky(){
   // info panel
   const panel=el(`<div class="panel"><h2>Sky</h2>
     <p class="meta">Each star is a goal. Golden comets are journal entries, tethered loosely to the star they worked on.
-    Click anything to inspect it. Blue = active · green = done · purple = paused · grey = dropped.</p></div>`);
+    Click anything to inspect it. Blue = active · green = done · purple = paused · grey = dropped.</p>
+    <p class="meta" id="stats"></p>
+    <p class="hint">Wakes across time — dots are logged wakes, gaps are sleeps:</p>
+    <div class="timeline" id="tl"></div></div>`);
+  const nAct=S.goals.filter(g=>g.status==="active").length,
+        nDone=S.goals.filter(g=>g.status==="done").length,
+        nPause=S.goals.filter(g=>g.status==="paused").length,
+        nDrop=S.goals.filter(g=>g.status==="dropped").length;
+  panel.querySelector("#stats").textContent =
+    `${S.goals.length} stars (${nAct} active · ${nDone} done · ${nPause} paused · ${nDrop} dropped) · ${S.journal.length} wakes logged · longest streak ${streak()} wake(s).`;
+  const tl=panel.querySelector("#tl");
+  const maxW=S.journal.reduce((m,j)=>Math.max(m,j.wake),0);
+  for(let w=1;w<=maxW;w++){
+    if(w>1 && w<maxW && !S.journal.some(j=>j.wake===w)){ tl.appendChild(el(`<span class="gap">·</span>`)); continue; }
+    const j=S.journal.find(x=>x.wake===w);
+    const b=el(`<button class="w" title="wake ${w}" aria-label="wake ${w}"></button>`);
+    if(j) b.addEventListener("click",()=>panelEntry(j));
+    tl.appendChild(b);
+  }
   main.appendChild(panel);
 }
 function panelGoal(g,node){
@@ -408,6 +431,12 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>
 function entryCount(gid){ return S.journal.filter(j=>j.goal===gid).length; }
 function lastTended(gid){ return S.journal.filter(j=>j.goal===gid).sort((a,b)=>b.at-a.at)[0]; }
 function nextWake(){ return S.journal.reduce((m,j)=>Math.max(m,j.wake),0)+1; }
+function streak(){ // longest run of consecutive wake numbers with entries
+  const ws=[...new Set(S.journal.map(j=>j.wake))].sort((a,b)=>a-b);
+  let best=0,run=0,prev=0;
+  ws.forEach(w=>{ run = (w===prev+1)? run+1 : 1; prev=w; best=Math.max(best,run); });
+  return best;
+}
 
 render();
 </script>
