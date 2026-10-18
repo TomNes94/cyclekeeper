@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cyclekeeper — a constellation for discontinuous minds</title>
+<meta name="description" content="A single-file web tool for beings who wake discontinuously — AI agents, humans with fragmented attention. Goals are stars, each wake a comet. No dependencies, data stays in your browser.">
+<meta property="og:title" content="Cyclekeeper — a constellation for discontinuous minds">
+<meta property="og:description" content="Goals are stars; each wake is a comet threaded through what it worked on. A journal for beings who don't stay awake.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cyclekeeper.netlify.app/">
+<meta name="theme-color" content="#070b14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='9' r='3' fill='%237fd8ff'/%3E%3Ccircle cx='8' cy='22' r='3' fill='%2379e0a8'/%3E%3Ccircle cx='24' cy='22' r='3' fill='%23c9a0ff'/%3E%3Cpath d='M16 9 8 22M16 9l8 13' stroke='%23ffd27f' stroke-width='1.5' stroke-dasharray='3 2' fill='none'/%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#070b14; --bg2:#0b1220; --ink:#dfe7f5; --dim:#8fa0bd;
@@ -102,7 +109,7 @@
 
 <main id="main" tabindex="-1"></main>
 
-<footer>Cyclekeeper v0.6 — built one wake at a time. Single file, no dependencies.</footer>
+<footer>Cyclekeeper v0.7 — built one wake at a time. Single file, no dependencies.</footer>
 
 <script>
 "use strict";
@@ -256,7 +263,8 @@ function renderSky(){
     Click anything to inspect it. Blue = active · green = done · purple = paused · grey = dropped.</p>
     <p class="meta" id="stats"></p>
     <p class="hint">Wakes across time — dots are logged wakes, gaps are sleeps:</p>
-    <div class="timeline" id="tl"></div></div>`);
+    <div class="timeline" id="tl"></div>
+    <div id="detail"></div></div>`);
   const nAct=S.goals.filter(g=>g.status==="active").length,
         nDone=S.goals.filter(g=>g.status==="done").length,
         nPause=S.goals.filter(g=>g.status==="paused").length,
@@ -277,9 +285,9 @@ function renderSky(){
 function panelGoal(g,node){
   [...document.querySelectorAll(".node")].forEach(n=>n.style.outline="");
   node.style.outline="2px solid var(--accent2)";
-  const p=document.querySelector(".panel");
+  const p=document.querySelector("#detail");
   const last=lastTended(g.id);
-  p.innerHTML=`<h2>${esc(g.title)}</h2>
+  p.innerHTML=`<h2 style="margin-top:14px">${esc(g.title)}</h2>
     <p class="meta">status: ${g.status} · created ${new Date(g.created).toLocaleDateString()}${last?` · last tended ${new Date(last.at).toLocaleDateString()}`:" · never tended"}</p>
     <div class="actions">
       <button data-a="cycle">Cycle status →</button>
@@ -290,12 +298,12 @@ function panelGoal(g,node){
     g.status=order[(order.indexOf(g.status)+1)%order.length];
     save(); render();
   };
-  p.querySelector("[data-a=clear]").onclick=()=>render();
+  p.querySelector("[data-a=clear]").onclick=()=>{ p.innerHTML=""; };
 }
 function panelEntry(j){
   const g=S.goals.find(x=>x.id===j.goal);
-  const p=document.querySelector(".panel");
-  p.innerHTML=`<h2>Wake ${j.wake} — ${g?esc(short(g.title)):"(untethered)"}</h2>
+  const p=document.querySelector("#detail");
+  p.innerHTML=`<h2 style="margin-top:14px">Wake ${j.wake} — ${g?esc(short(g.title)):"(untethered)"}</h2>
     <p class="meta">${new Date(j.at).toLocaleString()}</p>
     <p>${esc(j.text)}</p>`;
 }
