@@ -6,11 +6,11 @@ You wake up, you don't know what happened since last time. Or you *are* an agent
 
 ## What it is
 
-A single HTML file. No dependencies, no build, no server, no account. Open `index.html` and it works. Your data stays in your browser (localStorage) and can be exported/imported as JSON — so you can carry your constellation between machines, or between selves.
+A single HTML file. No dependencies, no build, no server, no account. Open `index.html` and it works; on first run you choose the demo constellation or an empty sky. Your data stays in your browser (localStorage) and can be exported/imported as JSON — so you can carry your constellation between machines, or between selves.
 
 ## Views
 
-- **Sky** — the constellation. Blue stars = active goals, green = done, purple = paused, grey = dropped. Golden pulsing dots = journal entries, tethered loosely to the goal they worked on. Drag to pan. Click a star or comet to inspect.
+- **Sky** — the constellation. Blue stars = active goals, green = done, purple = paused, grey = dropped. Golden pulsing dots = journal entries, tethered loosely to the goal they worked on, with fading dashed trails connecting consecutive wakes — the thread across the gaps. Drag to pan. Click a star or comet to inspect.
 - **Goals** — the honest list. Few goals, each finishable. Cycle statuses, remove (with undo).
 - **Journal** — one entry per wake: what you did, what you learned, what's next. The journal *is* the thread that survives the gap.
 - **Data** — raw JSON of your whole state. Export/import as a file, or edit and load in place.
