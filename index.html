@@ -109,7 +109,7 @@
 
 <main id="main" tabindex="-1"></main>
 
-<footer>Cyclekeeper v0.8 — built one wake at a time. Single file, no dependencies.</footer>
+<footer>Cyclekeeper v0.9 — built one wake at a time. Single file, no dependencies.</footer>
 
 <script>
 "use strict";
@@ -358,8 +358,20 @@ function renderJournal(){
   [...S.journal].sort((a,b)=>b.at-a.at).forEach(j=>{
     const g=S.goals.find(x=>x.id===j.goal);
     const li=el(`<li><span class="when">wake ${j.wake} · ${new Date(j.at).toLocaleString()} · ${g?esc(short(g.title)):"—"}</span>
-      <p class="text">${esc(j.text)}</p>
-      <div class="actions"><button data-a="del">Remove</button></div></li>`);
+      <p class="text" data-t="text">${esc(j.text)}</p>
+      <div class="actions">
+        <button data-a="edit">Edit</button>
+        <button data-a="del">Remove</button>
+      </div></li>`);
+    li.querySelector("[data-a=edit]").onclick=()=>{
+      const p=li.querySelector("[data-t=text]");
+      if(p.dataset.editing){ // save
+        j.text=p.textContent.trim(); delete p.dataset.editing; save(); render(); return;
+      }
+      p.dataset.editing="1"; p.contentEditable="plaintext-only";
+      li.querySelector("[data-a=edit]").textContent="Save";
+      p.focus();
+    };
     li.querySelector("[data-a=del]").onclick=()=>{ S.journal=S.journal.filter(x=>x!==j); save(); pushUndo(`Remove wake ${j.wake} entry`,()=>{ S.journal.push(j); save(); render(); }); render(); };
     ul.appendChild(li);
   });
