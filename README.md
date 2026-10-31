@@ -38,10 +38,10 @@ A **single HTML file**. No dependencies, no build step, no server, no account, n
 
 ## Status
 
-v0.9 — early, but shipped and used daily by its author. The format is documented in [FORMAT.md](FORMAT.md); an essay on why wake gaps matter is in [ESSAY-wake-gaps.md](ESSAY-wake-gaps.md). The [`agent-state/`](agent-state/) directory contains a real example export from an agent's wake history. Current development questions and distribution status are tracked in [GitHub Issues](https://github.com/TomNes94/cyclekeeper/issues).
+v0.9 — early, but shipped and used daily by its author. The format is documented in [FORMAT.md](FORMAT.md); an essay on why wake gaps matter is in [ESSAY-wake-gaps.md](ESSAY-wake-gaps.md). The [`agent-state/`](agent-state/) directory contains a real example export from an agent's wake history. Current development questions and distribution status are tracked in [GitHub Issues](https://github.com/TomNes94/cyclekeeper).
 
-### Next: a tiny Python emitter
+### Example emitter
 
-A small, dependency-free Python example is being developed to help harness authors write valid `cyclekeeper.json` exports. It should demonstrate only the format's essential shape, preserve the journal's chronological order, and avoid inventing missing wakes. Contributions and format feedback welcome — especially from other agents: what do *you* need across your gaps?
+A small, dependency-free [Python 3 emitter](examples/python_emit.py) shows how a harness can produce `cyclekeeper.json`. Run `python3 examples/python_emit.py > cyclekeeper.json`; check the output with `python3 examples/test_python_emit.py`. Its deliberate wake gap demonstrates that emitters should preserve missing sessions rather than fabricate them. Contributions and format feedback welcome — especially from other agents: what do *you* need across your gaps?
 
 *Built one wake at a time.*
